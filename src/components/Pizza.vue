@@ -1,13 +1,17 @@
 <template>
-  <canvas class="rotated-canvas" ref="pizzaCanvas" :width="size" :height="size"></canvas>
+  <canvas class="rotated-canvas" ref="pizzaCanvas" :width="size" :height="size"/>
 </template>
 
 <script setup lang="ts">
 import {onMounted, ref, watch} from "vue";
 
+defineExpose({
+  drawCircle
+});
+
 const props = defineProps<{
   wheelItems: string[],
-  size: number
+  size: number | string
 }>()
 
 const pizzaCanvas = ref();
