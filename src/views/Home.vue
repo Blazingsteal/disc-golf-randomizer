@@ -1,18 +1,11 @@
 <template>
   <div class="w-100 h-screen d-flex flex-column justify-center align-center">
-    <div class="wrapper">
-      <div class="pointer"></div>
-      <div class="chart" :style="rotationStyle">
-        <div
-          v-for="(item, idx) in wheelItems"
-          :key="idx"
-          class="slice"
-          :style="calculateRotation(idx)"
-        >
-          <div class="label">{{ item }}</div>
-        </div>
-      </div>
-    </div>
+    <div class="pointer"/>
+    <Pizza
+      :wheel-items="wheelItems"
+      :size="canvasSize"
+      :style="rotationStyle"
+    />
     <div class="d-flex">
       <v-btn
         variant="outlined"
@@ -21,7 +14,6 @@
       >
         spin
       </v-btn>
-      <!--      <div> {{ resultItem }}</div>-->
       <v-btn
         variant="outlined"
         color="primary"
@@ -32,40 +24,97 @@
       </v-btn>
     </div>
   </div>
+  <v-layout>
+    <v-bottom-navigation
+      v-model="mode"
+      color="primary"
+      :grow="true"
+    >
+      <v-btn>
+        <v-icon icon="mdi-disc"/>
+        Wheel
+      </v-btn>
+
+      <v-btn>
+        <v-icon icon="mdi-chart-timeline-variant"/>
+        Shot
+      </v-btn>
+
+      <v-btn>
+        <v-icon icon="mdi-disc"/>
+        Discs
+      </v-btn>
+
+      <v-btn>
+        <v-icon icon="mdi-disc"/>
+        Putting
+      </v-btn>
+    </v-bottom-navigation>
+  </v-layout>
 </template>
 
 <script lang="ts" setup>
-import {ref} from "vue";
+import Pizza from "@/components/Pizza.vue";
+import {ref, watch} from "vue";
 
-const wheelItems = ref([
-  "item 1", "item 2", "item 3", "item 4", "item 5",
-  "item 6", "item 7", "item 8", "item 9", "item 10",
-  "item 11", "item 12",
-]);
 const spin = ref(false);
 const rotationStyle = ref("");
-const resultItem = ref();
+const canvasSize = ref(750);
+const pointerOffset = ref(`-${canvasSize.value}px`);
+const currentRotation = ref(0);
+const mode = ref(0);
+const shotSelection = ref([
+  "Stand still",
+  "Backhand roller",
+  "Forehand roller",
+  "Backhand",
+  "Forehand",
+  "Tomahawk",
+  "Left-hand throw",
+  "Right-hand throw",
+  "Spin 3 times into throw",
+  "1 time use discs (round)",
+  "Loose hole = loose a disc (round)",
+  "Missed shot = loose disc (hole)",
+]);
+const discSelection = ref([
+  "Distance driver",
+  "Fairway driver",
+  "Mid range",
+  "Putter only",
+  "Berg only",
+  "Most overstable disc",
+  "Most understable disc",
+  "Most stable disc",
+  "Mini off the tee",
+  "One disc only (entire hole)",
+]);
+const putting = ref([
+  "Turbo put",
+  "Jump putt",
+  "Distance driver as putter (highest speed in bag)",
+  "Scoober",
+  "Left-hand put",
+  "Right-hand putt",
+]);
+const wheelSelector = ref([
+  "Shot selection",
+  "Disc selection",
+  "Putting selection"
+]);
+const wheelItems = ref(wheelSelector.value);
 
-// const showResult = ref(false);
-
-function calculateRotation(index: number) {
-  const sliceAngle = 360 / wheelItems.value.length;
-  return `transform: rotate(${sliceAngle * index}deg) skewY(-60deg);`;
-}
 
 function animate() {
   if (!spin.value) {
-    reset();
     setTimeout(() => {
       const degrees = getRandomDegrees();
-      const result = Math.floor(degrees / 30 % wheelItems.value.length);
-      resultItem.value = wheelItems.value[result];
+      currentRotation.value += degrees;
 
-      rotationStyle.value = `transform: rotate(${degrees}deg); transition-duration: 3000ms;`;
+      rotationStyle.value = `transform: rotate(${currentRotation.value}deg); transition-duration: 3000ms;`;
 
       spin.value = true;
       setTimeout(() => {
-        // showResult.value = true;
         spin.value = false;
       }, 3000);
     }, 50);
@@ -79,65 +128,41 @@ function getRandomDegrees() {
   return Math.floor(Math.random() * (maxDegrees - minDegrees + 1) + minDegrees);
 }
 
+
 function reset() {
   rotationStyle.value = "";
+  currentRotation.value = 0;
 }
 
-//background-color: rgb(var(--v-theme-primary));
+watch(() => mode.value,
+  (newValue, _) => {
+    switch (newValue) {
+      case 0:
+        wheelItems.value = wheelSelector.value
+        break;
+      case 1:
+        wheelItems.value = shotSelection.value
+        break;
+      case 2:
+        wheelItems.value = discSelection.value
+        break;
+      case 3:
+        wheelItems.value = putting.value
+        break;
+    }
+  })
+
 </script>
 
 <style>
-.chart {
-  position: relative;
-  border: 1px solid black;
-  padding: 0;
-  margin: 1em auto;
-  width: 20em;
-  height: 20em;
-  border-radius: 50%;
-  overflow: hidden;
-  transform: rotate(-15deg);
-}
-
-.slice {
-  overflow: hidden;
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 50%;
-  height: 50%;
-  transform-origin: 0% 100%;
-}
-
-.label {
-  position: absolute;
-  left: -100%;
-  width: 200%;
-  height: 200%;
-  text-align: center;
-  transform: skewY(60deg) rotate(15deg);
-  padding: 10px;
-}
-
-.slice:nth-child(even) .label {
-  background-color: rgb(var(--v-theme-primary-darken-1));
-}
-
-.slice:nth-child(odd) .label {
-  background-color: rgb(var(--v-theme-primary-selected));
-}
-
-
 .pointer {
   position: absolute;
   z-index: 1;
-  left: 50%;
   border-top: 15px solid rgb(var(--v-theme-secondary));
   border-left: 9px solid transparent;
   border-right: 9px solid transparent;
   width: 0;
   height: 0;
-  margin-top: 17px;
-  margin-left: -5px;
+  margin-top: v-bind(pointerOffset);
 }
 </style>
