@@ -100,7 +100,7 @@
           <v-col cols="12">
             <ListComponent
               :items="shotSelection"
-              title="Shot"
+              title="Shot selector"
               @delete-item="idx => deleteItem(0, idx)"
               @new-item="addItem(0)"
             />
@@ -108,7 +108,7 @@
           <v-col cols="12">
             <ListComponent
               :items="discSelection"
-              title="Discs"
+              title="Disc selector"
               @delete-item="idx => deleteItem(1, idx)"
               @new-item="addItem(1)"
             />
@@ -116,7 +116,7 @@
           <v-col cols="12">
             <ListComponent
               :items="puttingSelection"
-              title="Putting"
+              title="Putting style selector"
               @delete-item="idx => deleteItem(2, idx)"
               @new-item="addItem(2)"
             />
