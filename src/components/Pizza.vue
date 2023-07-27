@@ -1,9 +1,10 @@
 <template>
-  <canvas class="rotated-canvas" ref="pizzaCanvas" :width="size" :height="size"/>
+  <canvas class="rotated-canvas" ref="pizzaCanvas" :width="newSize" :height="newSize"/>
 </template>
 
 <script setup lang="ts">
 import {onMounted, ref, watch} from "vue";
+import {navStore} from "@/store/navStore";
 
 defineExpose({
   drawCircle
@@ -14,10 +15,26 @@ const props = defineProps<{
   size: number | string
 }>()
 
+const newSize = ref(props.size as number * Math.ceil(window.devicePixelRatio));
+
+watch(() => props.size,
+  (newValue, _) => {
+    pizzaCanvas.value.style.width = `${newValue}px`;
+    pizzaCanvas.value.style.height = `${newValue}px`;
+    const ratio = Math.ceil(window.devicePixelRatio);
+    const context = pizzaCanvas.value.getContext("2d");
+    newSize.value = newValue as number * Math.ceil(window.devicePixelRatio);
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+  }
+);
+
+
 const pizzaCanvas = ref();
 
 function drawCircle() {
   if (pizzaCanvas.value) {
+    pizzaCanvas.value.style.width = `${props.size}px`;
+    pizzaCanvas.value.style.height = `${props.size}px`;
     const context = pizzaCanvas.value.getContext("2d");
     const height = pizzaCanvas.value.height;
     const width = pizzaCanvas.value.width;
@@ -84,7 +101,7 @@ function drawCircle() {
       context.fillStyle = "black";
       context.textAlign = "start";
       context.textBaseline = "middle";
-      context.font = "bold 14px Arial";
+      context.font = `bold ${navStore.fontSize}px Arial`;
       context.fillText(props.wheelItems[i], 0, 0);
       context.restore();
     }

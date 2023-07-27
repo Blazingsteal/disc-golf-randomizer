@@ -4,58 +4,13 @@
     <Pizza
       ref="pizza"
       :wheel-items="wheelItems"
-      :size="canvasSize"
+      :size="navStore.canvasSize"
       :style="rotationStyle"
+      @click="animate"
     />
-    <v-bottom-navigation
-      v-model="mode.current"
-      color="primary"
-      :mandatory="true"
-    >
-      <v-btn>
-        <v-icon icon="mdi-disc"/>
-        Wheel
-      </v-btn>
-
-      <v-btn>
-        <v-icon icon="mdi-strategy"/>
-        Shot
-      </v-btn>
-
-      <v-btn>
-        <v-icon icon="mdi-disc"/>
-        Discs
-      </v-btn>
-
-      <v-btn>
-        <v-icon icon="mdi-disc"/>
-        Putting
-      </v-btn>
-
-      <v-btn>
-        <v-icon icon="mdi-all-inclusive"/>
-        All
-      </v-btn>
-
-      <v-btn>
-        <v-icon icon="mdi-wrench"/>
-        Settings
-      </v-btn>
-
-      <v-btn>
-        <v-icon icon="mdi-reload"/>
-        Spin
-      </v-btn>
-
-      <v-btn>
-        <v-icon icon="mdi-restore"/>
-        Reset
-      </v-btn>
-    </v-bottom-navigation>
   </div>
   <v-dialog
-    v-model="showSettingsDialog"
-    @update:model-value="resetMode"
+    v-model="navStore.showSettings"
     :fullscreen="true"
     :close-on-back="true"
     transition="dialog-bottom-transition"
@@ -66,20 +21,20 @@
         <v-btn
           icon
           dark
-          @click="() => {resetMode(); showSettingsDialog = false;}"
+          @click="navStore.showSettings = false"
         >
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-toolbar>
       <v-card-text>
         <v-row :dense="true">
-          <v-col cols="6">
+          <v-col cols="12">
             <v-checkbox
-              v-model="includeAll"
+              v-model="navStore.all"
               label="Include all in wheel chooser"
             />
           </v-col>
-          <v-col cols="6">
+          <v-col cols="12">
             <v-text-field
               v-model="canvasSizeInput"
               variant="outlined"
@@ -100,7 +55,49 @@
               </template>
             </v-text-field>
           </v-col>
-          <v-col cols="6">
+          <v-col cols="12">
+            <v-text-field
+              v-model="canvasFontSizeInput"
+              variant="outlined"
+              density="compact"
+              label="Font size in canvas (px)"
+              type="number"
+              :clearable="true"
+            >
+              <template #append>
+                <v-btn
+                  @click="applyNewSize"
+                  color="primary"
+                  variant="outlined"
+                  size="large"
+                >
+                  Apply
+                </v-btn>
+              </template>
+            </v-text-field>
+          </v-col>
+          <v-col cols="12">
+            <v-text-field
+              v-model="canvasPointerOffsetInput"
+              variant="outlined"
+              density="compact"
+              label="Pointer offset (px)"
+              type="number"
+              :clearable="true"
+            >
+              <template #append>
+                <v-btn
+                  @click="applyNewSize"
+                  color="primary"
+                  variant="outlined"
+                  size="large"
+                >
+                  Apply
+                </v-btn>
+              </template>
+            </v-text-field>
+          </v-col>
+          <v-col cols="12">
             <ListComponent
               :items="shotSelection"
               title="Shot"
@@ -108,7 +105,7 @@
               @new-item="addItem(0)"
             />
           </v-col>
-          <v-col cols="6">
+          <v-col cols="12">
             <ListComponent
               :items="discSelection"
               title="Discs"
@@ -134,18 +131,16 @@
 import Pizza from "@/components/Pizza.vue";
 import ListComponent from "@/components/ListComponent.vue";
 import {ref, watch} from "vue";
+import {navStore} from "@/store/navStore";
 
 const spin = ref(false);
 const pizza = ref<InstanceType<typeof Pizza> | null>(null);
 const rotationStyle = ref("");
-const canvasSizeInput = ref("750");
-const canvasSize = ref(750);
-const pointerOffset = ref(`-${canvasSize.value - 35}px`);
+const canvasSizeInput = ref(`${navStore.canvasSize}`);
+const canvasFontSizeInput = ref(`${navStore.fontSize}`);
+const canvasPointerOffsetInput = ref("22");
+const pointerOffset = ref(`-${navStore.canvasSize - parseInt(canvasPointerOffsetInput.value)}px`);
 const currentRotation = ref(0);
-const mode = ref({
-  current: 0,
-  previous: 0
-});
 const shotSelection = ref([
   "Stand still",
   "Backhand roller",
@@ -178,7 +173,7 @@ const discSelection = ref([
 const puttingSelection = ref([
   "Turbo put",
   "Jump putt",
-  "Distance driver as putter (highest speed in bag)",
+  "Distance driver as putter (highest speed)",
   "Scoober",
   "Left-hand putt",
   "Right-hand putt",
@@ -189,21 +184,19 @@ const wheelSelector = ref([
   "Putting selection"
 ]);
 const wheelItems = ref(wheelSelector.value);
-const showSettingsDialog = ref(false);
-const includeAll = ref(false);
 
 
 function animate() {
-  if (!spin.value) {
+  if (!navStore.spin) {
     setTimeout(() => {
       const degrees = getRandomDegrees();
       currentRotation.value += degrees;
 
       rotationStyle.value = `transform: rotate(${currentRotation.value}deg); transition-duration: 3000ms;`;
 
-      spin.value = true;
+      navStore.spin = true;
       setTimeout(() => {
-        spin.value = false;
+        navStore.spin = false;
       }, 3000);
     }, 50);
   }
@@ -221,20 +214,24 @@ function reset() {
   currentRotation.value = 0;
 }
 
-watch(() => mode.value.current,
+watch(() => navStore.currentMode,
   (newValue, oldValue) => {
     switch (newValue) {
       case 0:
         wheelItems.value = wheelSelector.value;
+        navStore.fontSize = 45;
         break;
       case 1:
         wheelItems.value = shotSelection.value;
+        navStore.fontSize = 33;
         break;
       case 2:
         wheelItems.value = discSelection.value;
+        navStore.fontSize = 38;
         break;
       case 3:
         wheelItems.value = puttingSelection.value;
+        navStore.fontSize = 25;
         break;
       case 4:
         wheelItems.value = [
@@ -242,36 +239,33 @@ watch(() => mode.value.current,
           ...discSelection.value,
           ...puttingSelection.value
         ];
-        break;
-      case 5:
-        showSettingsDialog.value = true;
-        mode.value.previous = oldValue;
+        navStore.fontSize = 25;
         break;
       case 6:
-        animate();
-        mode.value.current = oldValue;
-        break;
-      case 7:
         reset();
-        mode.value.current = oldValue;
+        navStore.currentMode = oldValue;
         break;
     }
   }
 );
 
-watch(() => includeAll.value,
+watch(() => navStore.all,
   (newValue, _) => {
     if (newValue) {
       wheelSelector.value = ["Shot selection", "Disc selection", "Putting selection", "All"];
+      if (navStore.currentMode === 0) {
+        wheelItems.value = wheelSelector.value;
+        reDrawCanvas();
+      }
     } else {
       wheelSelector.value = ["Shot selection", "Disc selection", "Putting selection"];
+      if (navStore.currentMode === 0) {
+        wheelItems.value = wheelSelector.value;
+        reDrawCanvas();
+      }
     }
   }
 );
-
-function resetMode() {
-  mode.value.current = mode.value.previous;
-}
 
 function deleteItem(mode: number, idx: number) {
   switch (mode) {
@@ -303,8 +297,9 @@ function addItem(mode: number) {
 
 function applyNewSize() {
   if (canvasSizeInput.value) {
-    canvasSize.value = parseInt(canvasSizeInput.value);
-    pointerOffset.value = `-${canvasSize.value - 35}px`;
+    navStore.canvasSize = parseInt(canvasSizeInput.value);
+    pointerOffset.value = `-${navStore.canvasSize - parseInt(canvasPointerOffsetInput.value)}px`;
+    navStore.fontSize = parseInt(canvasFontSizeInput.value);
     setTimeout(() => {
       reDrawCanvas();
     }, 100);
