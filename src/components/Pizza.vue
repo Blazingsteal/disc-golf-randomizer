@@ -46,8 +46,11 @@ function drawCircle() {
       context.moveTo(centerX, centerY);
       context.arc(centerX, centerY, radius, startAngle, endAngle);
       context.closePath();
-      if (props.wheelItems.length % 2 === 0) {
+      const evenSize = props.wheelItems.length % 2 === 0;
+      if (evenSize) {
         context.fillStyle = i % 2 === 0 ? evenColor : oddColor;
+      } else if (!evenSize && (i === props.wheelItems.length - 1) && (props.wheelItems.length > 3)) {
+        context.fillStyle = oddColor;
       } else {
         switch (oddLengthIndex) {
           case 0:
@@ -63,6 +66,9 @@ function drawCircle() {
             oddLengthIndex++;
             break;
         }
+      }
+      if (oddLengthIndex >= 3) {
+        oddLengthIndex = 0;
       }
       context.fill();
       context.stroke();

@@ -84,6 +84,7 @@
               v-model="canvasSizeInput"
               variant="outlined"
               density="compact"
+              label="Size of canvas (px)"
               type="number"
               :clearable="true"
             >
@@ -155,6 +156,7 @@ const shotSelection = ref([
   "Left-hand throw",
   "Right-hand throw",
   "Spin 3 times into throw",
+  "Spin 2 times into jump throw",
   "1 time use discs (round)",
   "Loose hole = loose a disc (round)",
   "Missed shot = loose disc (hole)",
@@ -168,6 +170,8 @@ const discSelection = ref([
   "Most overstable disc",
   "Most understable disc",
   "Most stable disc",
+  "Highest speed disc",
+  "Lowest speed disc",
   "Mini off the tee",
   "One disc only (entire hole)",
 ]);
