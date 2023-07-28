@@ -21,7 +21,7 @@
         <v-btn
           icon
           dark
-          @click="navStore.showSettings = false"
+          @click="closeSettingsDialog()"
         >
           <v-icon>mdi-close</v-icon>
         </v-btn>
@@ -45,7 +45,7 @@
             >
               <template #append>
                 <v-btn
-                  @click="applyNewSize"
+                  @click="applyNewSize()"
                   color="primary"
                   variant="outlined"
                   size="large"
@@ -66,7 +66,7 @@
             >
               <template #append>
                 <v-btn
-                  @click="applyNewSize"
+                  @click="applyNewSize()"
                   color="primary"
                   variant="outlined"
                   size="large"
@@ -87,7 +87,29 @@
             >
               <template #append>
                 <v-btn
-                  @click="applyNewSize"
+                  @click="applyNewSize()"
+                  color="primary"
+                  variant="outlined"
+                  size="large"
+                >
+                  Apply
+                </v-btn>
+              </template>
+            </v-text-field>
+          </v-col>
+          <v-col cols="12">
+            <v-text-field
+              v-model="rotationsInput"
+              variant="outlined"
+              density="compact"
+              label="Number of rotations. Minimum >= 3"
+              min="3"
+              type="number"
+              :clearable="true"
+            >
+              <template #append>
+                <v-btn
+                  @click="setNewRotations()"
                   color="primary"
                   variant="outlined"
                   size="large"
@@ -115,7 +137,7 @@
           </v-col>
           <v-col cols="12">
             <ListComponent
-              :items="puttingSelection"
+              :items="puttingStyleSelection"
               title="Putting style selector"
               @delete-item="idx => deleteItem(2, idx)"
               @new-item="addItem(2)"
@@ -130,60 +152,24 @@
 <script lang="ts" setup>
 import Pizza from "@/components/Pizza.vue";
 import ListComponent from "@/components/ListComponent.vue";
-import {ref, watch} from "vue";
+import {onMounted, ref, watch} from "vue";
 import {navStore} from "@/store/navStore";
+import {Preferences} from "@capacitor/preferences"
 
-const spin = ref(false);
 const pizza = ref<InstanceType<typeof Pizza> | null>(null);
 const rotationStyle = ref("");
 const canvasSizeInput = ref(`${navStore.canvasSize}`);
 const canvasFontSizeInput = ref(`${navStore.fontSize}`);
 const canvasPointerOffsetInput = ref("22");
+const rotationsInput = ref("3");
 const pointerOffset = ref(`-${navStore.canvasSize - parseInt(canvasPointerOffsetInput.value)}px`);
 const currentRotation = ref(0);
-const shotSelection = ref([
-  "Stand still",
-  "Backhand roller",
-  "Forehand roller",
-  "Backhand",
-  "Forehand",
-  "Tomahawk",
-  "Left-hand throw",
-  "Right-hand throw",
-  "Spin 3 times into throw",
-  "Spin 2 times into jump throw",
-  "1 time use discs (round)",
-  "Loose hole = loose a disc (round)",
-  "Missed shot = loose disc (hole)",
-]);
-const discSelection = ref([
-  "Distance driver",
-  "Fairway driver",
-  "Mid range",
-  "Putter only",
-  "Berg only",
-  "Most overstable disc",
-  "Most understable disc",
-  "Most stable disc",
-  "Highest speed disc",
-  "Lowest speed disc",
-  "Mini off the tee",
-  "One disc only (entire hole)",
-]);
-const puttingSelection = ref([
-  "Turbo put",
-  "Jump putt",
-  "Distance driver as putter (highest speed)",
-  "Scoober",
-  "Left-hand putt",
-  "Right-hand putt",
-]);
-const wheelSelector = ref([
-  "Shot selection",
-  "Disc selection",
-  "Putting selection"
-]);
+const shotSelection = ref<string[]>([]);
+const discSelection = ref<string[]>([]);
+const puttingStyleSelection = ref<string[]>([]);
+const wheelSelector = ref(["Shot selection", "Disc selection", "Putting selection"]);
 const wheelItems = ref(wheelSelector.value);
+const newChanges = ref(false);
 
 
 function animate() {
@@ -204,7 +190,7 @@ function animate() {
 
 function getRandomDegrees() {
   const minDegrees = 720;
-  const maxDegrees = 1080;
+  const maxDegrees = 360 * navStore.rotations;
   return Math.floor(Math.random() * (maxDegrees - minDegrees + 1) + minDegrees);
 }
 
@@ -230,14 +216,14 @@ watch(() => navStore.currentMode,
         navStore.fontSize = 38;
         break;
       case 3:
-        wheelItems.value = puttingSelection.value;
+        wheelItems.value = puttingStyleSelection.value;
         navStore.fontSize = 25;
         break;
       case 4:
         wheelItems.value = [
           ...shotSelection.value,
           ...discSelection.value,
-          ...puttingSelection.value
+          ...puttingStyleSelection.value
         ];
         navStore.fontSize = 25;
         break;
@@ -271,12 +257,15 @@ function deleteItem(mode: number, idx: number) {
   switch (mode) {
     case 0:
       shotSelection.value.splice(idx, 1);
+      newChanges.value = true;
       break;
     case 1:
       discSelection.value.splice(idx, 1);
+      newChanges.value = true;
       break;
     case 2:
-      puttingSelection.value.splice(idx, 1);
+      puttingStyleSelection.value.splice(idx, 1);
+      newChanges.value = true;
       break;
   }
 }
@@ -285,13 +274,72 @@ function addItem(mode: number) {
   switch (mode) {
     case 0:
       shotSelection.value.push("");
+      newChanges.value = true;
       break;
     case 1:
       discSelection.value.push("");
+      newChanges.value = true;
       break;
     case 2:
-      puttingSelection.value.push("");
+      puttingStyleSelection.value.push("");
+      newChanges.value = true;
       break;
+  }
+}
+
+
+function closeSettingsDialog() {
+  if (newChanges.value) {
+    saveNewWheelValues();
+    newChanges.value = false;
+  }
+  navStore.showSettings = false;
+}
+
+async function saveNewWheelValues() {
+  if (shotSelection.value.length) {
+    await Preferences.set({
+      key: "shotSelection",
+      value: JSON.stringify(shotSelection.value)
+    });
+  }
+  if (discSelection.value.length) {
+    await Preferences.set({
+      key: "discSelection",
+      value: JSON.stringify(discSelection.value)
+    });
+  }
+  if (puttingStyleSelection.value.length) {
+    await Preferences.set({
+      key: "puttingStyleSelection",
+      value: JSON.stringify(puttingStyleSelection.value)
+    });
+  }
+  await Preferences.set({
+    key: "fontSize",
+    value: `${navStore.fontSize}`
+  });
+  await Preferences.set({
+    key: "canvasSize",
+    value: `${navStore.canvasSize}`
+  });
+  await Preferences.set({
+    key: "rotations",
+    value: `${navStore.rotations}`
+  });
+  await Preferences.set({
+    key: "canvasPointerOffset",
+    value: canvasPointerOffsetInput.value
+  });
+}
+
+function setNewRotations() {
+  const newRotations = parseInt(rotationsInput.value);
+  if (newRotations && newRotations >= 3) {
+    navStore.rotations = newRotations;
+    newChanges.value = true;
+  } else {
+    navStore.rotations = 3;
   }
 }
 
@@ -300,6 +348,7 @@ function applyNewSize() {
     navStore.canvasSize = parseInt(canvasSizeInput.value);
     pointerOffset.value = `-${navStore.canvasSize - parseInt(canvasPointerOffsetInput.value)}px`;
     navStore.fontSize = parseInt(canvasFontSizeInput.value);
+    newChanges.value = true;
     setTimeout(() => {
       reDrawCanvas();
     }, 100);
@@ -310,6 +359,63 @@ function reDrawCanvas() {
   pizza.value?.drawCircle();
 }
 
+
+onMounted(async () => {
+  /* Load any values from local storage */
+  const localShotSelections = await Preferences.get({key: "shotSelection"});
+  const localDiscSelections = await Preferences.get({key: "discSelection"});
+  const localPuttingStyleSelection = await Preferences.get({key: "puttingStyleSelection"});
+  const localFontSize = await Preferences.get({key: "fontSize"});
+  const localCanvasSize = await Preferences.get({key: "canvasSize"});
+  const localRotations = await Preferences.get({key: "rotations"});
+  const localCanvasPointerOffset = await Preferences.get({key: "canvasPointerOffset"});
+  if (localShotSelections.value) {
+    const arr = JSON.parse(localShotSelections.value);
+    if (arr.length) {
+      shotSelection.value = arr;
+    } else {
+      shotSelection.value = navStore.orgValues.shotSelection.slice();
+    }
+  } else {
+    shotSelection.value = navStore.orgValues.shotSelection.slice();
+  }
+  if (localDiscSelections.value) {
+    const arr = JSON.parse(localDiscSelections.value);
+    if (arr.length) {
+      discSelection.value = arr;
+    } else {
+      discSelection.value = navStore.orgValues.discSelection.slice();
+    }
+  } else {
+    discSelection.value = navStore.orgValues.discSelection.slice();
+  }
+  if (localPuttingStyleSelection.value) {
+    const arr = JSON.parse(localPuttingStyleSelection.value);
+    if (arr.length) {
+      puttingStyleSelection.value = arr;
+    } else {
+      puttingStyleSelection.value = navStore.orgValues.puttingStyleSelection.slice();
+    }
+  } else {
+    puttingStyleSelection.value = navStore.orgValues.puttingStyleSelection.slice();
+  }
+  if (localFontSize.value) {
+    navStore.fontSize = parseInt(JSON.parse(localFontSize.value));
+    canvasFontSizeInput.value = `${navStore.fontSize}`;
+  }
+  if (localCanvasSize.value) {
+    navStore.canvasSize = parseInt(JSON.parse(localCanvasSize.value));
+    canvasSizeInput.value = `${navStore.canvasSize}`;
+  }
+  if (localRotations.value) {
+    navStore.rotations = parseInt(JSON.parse(localRotations.value));
+    rotationsInput.value = `${navStore.rotations}`;
+  }
+  if (localCanvasPointerOffset.value) {
+    canvasPointerOffsetInput.value = JSON.parse(localCanvasPointerOffset.value);
+    pointerOffset.value = `-${navStore.canvasSize - parseInt(canvasPointerOffsetInput.value)}px`;
+  }
+});
 
 </script>
 
