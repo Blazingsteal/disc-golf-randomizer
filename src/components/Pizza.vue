@@ -23,10 +23,12 @@ watch(() => props.size,
     pizzaCanvas.value.style.height = `${newValue}px`;
     const ratio = Math.ceil(window.devicePixelRatio);
     const context = pizzaCanvas.value.getContext("2d");
-    console.log(newValue)
-    console.log(props.size)
     newSize.value = newValue as number * Math.ceil(window.devicePixelRatio);
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    console.log("Got new size, redrawing")
+    setTimeout(() => {
+      drawCircle()
+    }, 100);
   }
 );
 
@@ -35,6 +37,7 @@ const pizzaCanvas = ref();
 
 function drawCircle() {
   if (pizzaCanvas.value) {
+    console.log("Drawing")
     pizzaCanvas.value.style.width = `${props.size}px`;
     pizzaCanvas.value.style.height = `${props.size}px`;
     const context = pizzaCanvas.value.getContext("2d");
@@ -57,7 +60,6 @@ function drawCircle() {
     context.stroke();
 
     for (let i = 0; i < props.wheelItems.length; i++) {
-      console.log(`i: ${i}`)
       const startAngle = i * sliceAngle - Math.PI / 2;
       const endAngle = (i + 1) * sliceAngle - Math.PI / 2;
       const sliceCenterAngle = (startAngle + endAngle) / 2;
