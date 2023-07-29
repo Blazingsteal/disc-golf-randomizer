@@ -25,7 +25,7 @@ import {navStore} from "@/store/navStore";
   position: sticky;
   z-index: 100;
   left: 256px;
-  top: 24px;
+  top: 5%;
   transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
   background-color: rgb(var(--v-theme-surface-1));
   border-radius: 0 8px 8px 0;

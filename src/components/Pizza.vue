@@ -1,5 +1,10 @@
 <template>
-  <canvas class="rotated-canvas" ref="pizzaCanvas" :width="newSize" :height="newSize"/>
+  <canvas
+    class="rotated-canvas"
+    ref="pizzaCanvas"
+    :width="newSize"
+    :height="newSize"
+  />
 </template>
 
 <script setup lang="ts">
@@ -25,7 +30,6 @@ watch(() => props.size,
     const context = pizzaCanvas.value.getContext("2d");
     newSize.value = newValue as number * Math.ceil(window.devicePixelRatio);
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    console.log("Got new size, redrawing")
     setTimeout(() => {
       drawCircle()
     }, 100);
@@ -37,7 +41,6 @@ const pizzaCanvas = ref();
 
 function drawCircle() {
   if (pizzaCanvas.value) {
-    console.log("Drawing")
     pizzaCanvas.value.style.width = `${props.size}px`;
     pizzaCanvas.value.style.height = `${props.size}px`;
     const context = pizzaCanvas.value.getContext("2d");
@@ -128,6 +131,6 @@ watch(() => props.wheelItems,
 
 <style scoped>
 .rotated-canvas {
-  transform: rotate(-15deg);
+  transform: rotate(-5deg);
 }
 </style>

@@ -1,6 +1,7 @@
 <template>
   <div class="h-100 w-100 d-flex flex-column justify-center align-center overflow-hidden">
     <div class="pointer"/>
+    <span v-if="showSelectedItem" class="selected-item text-h5 text-center">{{ selectedItem }}</span>
     <Pizza
       ref="pizza"
       :wheel-items="wheelItems"
@@ -29,121 +30,99 @@
       <v-card-text>
         <v-row :dense="true">
           <v-col cols="12">
-            <v-checkbox
-              v-model="navStore.all"
-              label="Include all in wheel chooser"
-            />
+            <v-checkbox v-model="navStore.all" label="Include all in wheel chooser"/>
           </v-col>
           <v-col cols="12">
             <v-text-field
               v-model="canvasSizeInput"
               variant="outlined"
               density="compact"
+              color="primary"
               label="Size of canvas (px)"
               type="number"
               :clearable="true"
-            >
-              <template #append>
-                <v-btn
-                  @click="applyNewSize()"
-                  color="primary"
-                  variant="outlined"
-                  size="large"
-                >
-                  Apply
-                </v-btn>
-              </template>
-            </v-text-field>
+              hide-details
+            />
           </v-col>
           <v-col cols="12">
             <v-text-field
               v-model="canvasFontSizeInput"
               variant="outlined"
               density="compact"
+              color="primary"
               label="Font size in canvas (px)"
               type="number"
               :clearable="true"
-            >
-              <template #append>
-                <v-btn
-                  @click="applyNewSize()"
-                  color="primary"
-                  variant="outlined"
-                  size="large"
-                >
-                  Apply
-                </v-btn>
-              </template>
-            </v-text-field>
+              hide-details
+            />
           </v-col>
           <v-col cols="12">
             <v-text-field
               v-model="canvasPointerOffsetInput"
               variant="outlined"
               density="compact"
+              color="primary"
               label="Pointer offset (px)"
               type="number"
               :clearable="true"
-            >
-              <template #append>
-                <v-btn
-                  @click="applyNewSize()"
-                  color="primary"
-                  variant="outlined"
-                  size="large"
-                >
-                  Apply
-                </v-btn>
-              </template>
-            </v-text-field>
+              hide-details
+            />
           </v-col>
           <v-col cols="12">
             <v-text-field
               v-model="rotationsInput"
               variant="outlined"
               density="compact"
+              color="primary"
               label="Number of rotations. Minimum >= 3"
               min="3"
               type="number"
               :clearable="true"
-            >
-              <template #append>
-                <v-btn
-                  @click="setNewRotations()"
-                  color="primary"
-                  variant="outlined"
-                  size="large"
-                >
-                  Apply
-                </v-btn>
-              </template>
-            </v-text-field>
-          </v-col>
-          <v-col cols="12">
-            <ListComponent
-              :items="shotSelection"
-              title="Shot selector"
-              @delete-item="idx => deleteItem(0, idx)"
-              @new-item="addItem(0)"
-            />
-          </v-col>
-          <v-col cols="12">
-            <ListComponent
-              :items="discSelection"
-              title="Disc selector"
-              @delete-item="idx => deleteItem(1, idx)"
-              @new-item="addItem(1)"
-            />
-          </v-col>
-          <v-col cols="12">
-            <ListComponent
-              :items="puttingStyleSelection"
-              title="Putting style selector"
-              @delete-item="idx => deleteItem(2, idx)"
-              @new-item="addItem(2)"
+              hide-details
             />
           </v-col>
         </v-row>
+        <v-row>
+          <v-col cols="12" class="d-flex justify-center">
+            <v-btn
+              @click="applyNewSettings()"
+              color="primary"
+              variant="outlined"
+              size="large"
+            >
+              Save
+            </v-btn>
+          </v-col>
+          <v-col cols="12" class="d-flex justify-center">
+            <v-btn
+              color="error"
+              variant="outlined"
+              size="large"
+              append-icon="mdi-delete"
+              @click="resetToDefaults()"
+            >
+              Reset to defaults
+            </v-btn>
+          </v-col>
+        </v-row>
+        <ListComponent
+          :items="shotSelection"
+          title="Shot selector"
+          @delete-item="idx => deleteItem(0, idx)"
+          @new-item="addItem(0)"
+        />
+        <ListComponent
+          :items="discSelection"
+          title="Disc selector"
+          @delete-item="idx => deleteItem(1, idx)"
+          @new-item="addItem(1)"
+        />
+        <ListComponent
+          :items="puttingStyleSelection"
+          title="Putting style selector"
+          @delete-item="idx => deleteItem(2, idx)"
+          @new-item="addItem(2)"
+        />
       </v-card-text>
     </v-card>
   </v-dialog>
@@ -154,7 +133,7 @@ import Pizza from "@/components/Pizza.vue";
 import ListComponent from "@/components/ListComponent.vue";
 import {onMounted, ref, watch} from "vue";
 import {navStore} from "@/store/navStore";
-import {Preferences} from "@capacitor/preferences"
+import {Preferences} from "@capacitor/preferences";
 
 const pizza = ref<InstanceType<typeof Pizza> | null>(null);
 const rotationStyle = ref("");
@@ -170,19 +149,27 @@ const puttingStyleSelection = ref<string[]>([]);
 const wheelSelector = ref(["Shot selection", "Disc selection", "Putting selection"]);
 const wheelItems = ref(wheelSelector.value);
 const newChanges = ref(false);
+const selectedItem = ref("");
+const showSelectedItem = ref(false);
 
 
 function animate() {
   if (!navStore.spin) {
     setTimeout(() => {
+      showSelectedItem.value = false;
       const degrees = getRandomDegrees();
       currentRotation.value += degrees;
 
       rotationStyle.value = `transform: rotate(${currentRotation.value}deg); transition-duration: 3000ms;`;
 
+      const selectedItemIndex = (wheelItems.value.length - (currentRotation.value % 360 / 360) * wheelItems.value.length) % wheelItems.value.length;
+      selectedItem.value = wheelItems.value[Math.floor(selectedItemIndex)];
+
+
       navStore.spin = true;
       setTimeout(() => {
         navStore.spin = false;
+        showSelectedItem.value = true;
       }, 3000);
     }, 50);
   }
@@ -194,30 +181,29 @@ function getRandomDegrees() {
   return Math.floor(Math.random() * (maxDegrees - minDegrees + 1) + minDegrees);
 }
 
-
-function reset() {
-  rotationStyle.value = "";
-  currentRotation.value = 0;
-}
-
 watch(() => navStore.currentMode,
   (newValue, oldValue) => {
+    showSelectedItem.value = false;
     switch (newValue) {
       case 0:
         wheelItems.value = wheelSelector.value;
         navStore.fontSize = 45;
+        canvasFontSizeInput.value = `${navStore.fontSize}`;
         break;
       case 1:
         wheelItems.value = shotSelection.value;
         navStore.fontSize = 33;
+        canvasFontSizeInput.value = `${navStore.fontSize}`;
         break;
       case 2:
         wheelItems.value = discSelection.value;
         navStore.fontSize = 38;
+        canvasFontSizeInput.value = `${navStore.fontSize}`;
         break;
       case 3:
         wheelItems.value = puttingStyleSelection.value;
         navStore.fontSize = 25;
+        canvasFontSizeInput.value = `${navStore.fontSize}`;
         break;
       case 4:
         wheelItems.value = [
@@ -226,10 +212,7 @@ watch(() => navStore.currentMode,
           ...puttingStyleSelection.value
         ];
         navStore.fontSize = 25;
-        break;
-      case 6:
-        reset();
-        navStore.currentMode = oldValue;
+        canvasFontSizeInput.value = `${navStore.fontSize}`;
         break;
     }
   }
@@ -333,13 +316,21 @@ async function saveNewWheelValues() {
   });
 }
 
+function applyNewSettings() {
+  setNewRotations();
+  applyNewSize();
+}
+
 function setNewRotations() {
-  const newRotations = parseInt(rotationsInput.value);
-  if (newRotations && newRotations >= 3) {
-    navStore.rotations = newRotations;
-    newChanges.value = true;
-  } else {
-    navStore.rotations = 3;
+  if (rotationsInput.value) {
+    const newRotations = parseInt(rotationsInput.value);
+    if (newRotations && newRotations >= 3) {
+      navStore.rotations = newRotations;
+      newChanges.value = true;
+    } else {
+      navStore.rotations = 3;
+      rotationsInput.value = `${navStore.rotations}`;
+    }
   }
 }
 
@@ -374,30 +365,30 @@ onMounted(async () => {
     if (arr.length) {
       shotSelection.value = arr;
     } else {
-      shotSelection.value = navStore.orgValues.shotSelection.slice();
+      shotSelection.value = navStore.orgShotSelection.slice();
     }
   } else {
-    shotSelection.value = navStore.orgValues.shotSelection.slice();
+    shotSelection.value = navStore.orgShotSelection.slice();
   }
   if (localDiscSelections.value) {
     const arr = JSON.parse(localDiscSelections.value);
     if (arr.length) {
       discSelection.value = arr;
     } else {
-      discSelection.value = navStore.orgValues.discSelection.slice();
+      discSelection.value = navStore.orgDiscSelection.slice();
     }
   } else {
-    discSelection.value = navStore.orgValues.discSelection.slice();
+    discSelection.value = navStore.orgDiscSelection.slice();
   }
   if (localPuttingStyleSelection.value) {
     const arr = JSON.parse(localPuttingStyleSelection.value);
     if (arr.length) {
       puttingStyleSelection.value = arr;
     } else {
-      puttingStyleSelection.value = navStore.orgValues.puttingStyleSelection.slice();
+      puttingStyleSelection.value = navStore.orgPuttingStyleSelection.slice();
     }
   } else {
-    puttingStyleSelection.value = navStore.orgValues.puttingStyleSelection.slice();
+    puttingStyleSelection.value = navStore.orgPuttingStyleSelection.slice();
   }
   if (localFontSize.value) {
     navStore.fontSize = parseInt(JSON.parse(localFontSize.value));
@@ -417,6 +408,23 @@ onMounted(async () => {
   }
 });
 
+function resetToDefaults() {
+  navStore.resetToDefaults();
+  shotSelection.value = navStore.orgShotSelection.slice();
+  discSelection.value = navStore.orgDiscSelection.slice();
+  puttingStyleSelection.value = navStore.orgPuttingStyleSelection.slice();
+  canvasFontSizeInput.value = `${navStore.fontSize}`;
+  canvasSizeInput.value = `${navStore.canvasSize}`;
+  rotationsInput.value = `${navStore.rotations}`;
+  canvasPointerOffsetInput.value = "22";
+  pointerOffset.value = `-${navStore.canvasSize - parseInt(canvasPointerOffsetInput.value)}px`;
+  rotationStyle.value = "";
+  currentRotation.value = 0;
+  showSelectedItem.value = false;
+  selectedItem.value = "";
+  saveNewWheelValues();
+}
+
 </script>
 
 <style>
@@ -429,5 +437,11 @@ onMounted(async () => {
   width: 0;
   height: 0;
   margin-top: v-bind(pointerOffset);
+}
+
+.selected-item {
+  position: absolute;
+  z-index: 2;
+  top: 10%;
 }
 </style>

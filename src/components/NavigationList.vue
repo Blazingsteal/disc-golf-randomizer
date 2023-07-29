@@ -5,10 +5,7 @@
     :temporary="true"
     location="left"
   >
-    <v-list
-      density="comfortable"
-      variant="elevated"
-    >
+    <v-list density="comfortable" variant="elevated">
       <v-list-item
         v-for="(path, i) in paths"
         :key="i"
@@ -67,12 +64,7 @@ const paths = ref([
     name: "Settings", index: 5, icon: "mdi-wrench", action() {
       navStore.showSettings = true;
     }
-  },
-  {
-    name: "Reset", index: 6, icon: "mdi-restore", action() {
-      navStore.currentMode = this.index;
-    }
-  },
+  }
 ]);
 
 </script>

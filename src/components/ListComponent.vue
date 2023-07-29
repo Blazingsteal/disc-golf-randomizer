@@ -13,7 +13,9 @@
           v-model="items[idx]"
           variant="outlined"
           density="compact"
+          color="primary"
           :clearable="true"
+          hide-details
         >
           <template #append>
             <v-btn
