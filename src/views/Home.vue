@@ -33,53 +33,97 @@
             <v-checkbox v-model="navStore.all" label="Include all in wheel chooser"/>
           </v-col>
           <v-col cols="12">
-            <v-text-field
-              v-model="canvasSizeInput"
-              variant="outlined"
-              density="compact"
-              color="primary"
-              label="Size of canvas (px)"
-              type="number"
-              :clearable="true"
-              hide-details
-            />
+            <div class="py-4">
+              <v-text-field
+                v-model="canvasSizeInput"
+                variant="outlined"
+                density="compact"
+                color="primary"
+                label="Size of canvas (px)"
+                type="number"
+                :clearable="true"
+                hide-details
+              />
+              <v-slider
+                v-model="canvasSizeInput"
+                max="1000"
+                min="150"
+                step="1"
+                hide-details
+                color="primary"
+                density="compact"
+              />
+            </div>
           </v-col>
           <v-col cols="12">
-            <v-text-field
-              v-model="canvasFontSizeInput"
-              variant="outlined"
-              density="compact"
-              color="primary"
-              label="Font size in canvas (px)"
-              type="number"
-              :clearable="true"
-              hide-details
-            />
+            <div class="py-4">
+              <v-text-field
+                v-model="canvasFontSizeInput"
+                variant="outlined"
+                density="compact"
+                color="primary"
+                label="Font size in canvas (px)"
+                type="number"
+                :clearable="true"
+                hide-details
+              />
+              <v-slider
+                v-model="canvasFontSizeInput"
+                max="100"
+                min="15"
+                step="1"
+                hide-details
+                color="primary"
+                density="compact"
+              />
+            </div>
           </v-col>
           <v-col cols="12">
-            <v-text-field
-              v-model="canvasPointerOffsetInput"
-              variant="outlined"
-              density="compact"
-              color="primary"
-              label="Pointer offset (px)"
-              type="number"
-              :clearable="true"
-              hide-details
-            />
+            <div class="py-4">
+              <v-text-field
+                v-model="canvasPointerOffsetInput"
+                variant="outlined"
+                density="compact"
+                color="primary"
+                label="Pointer offset (px)"
+                type="number"
+                :clearable="true"
+                hide-details
+              />
+              <v-slider
+                v-model="canvasPointerOffsetInput"
+                max="100"
+                min="1"
+                step="1"
+                hide-details
+                color="primary"
+                density="compact"
+              />
+            </div>
           </v-col>
           <v-col cols="12">
-            <v-text-field
-              v-model="rotationsInput"
-              variant="outlined"
-              density="compact"
-              color="primary"
-              label="Number of rotations. Minimum >= 3"
-              min="3"
-              type="number"
-              :clearable="true"
-              hide-details
-            />
+            <div class="py-4">
+              <v-text-field
+                v-model="rotationsInput"
+                variant="outlined"
+                density="compact"
+                color="primary"
+                label="Number of rotations. Minimum >= 3"
+                min="3"
+                type="number"
+                :clearable="true"
+                hide-details
+              />
+              <v-slider
+                v-model="rotationsInput"
+                max="1000"
+                min="3"
+                step="1"
+                hide-details
+                color="primary"
+                density="compact"
+              />
+            </div>
           </v-col>
         </v-row>
         <v-row>
@@ -134,6 +178,7 @@ import ListComponent from "@/components/ListComponent.vue";
 import {onMounted, ref, watch} from "vue";
 import {navStore} from "@/store/navStore";
 import {Preferences} from "@capacitor/preferences";
+import {App} from "@capacitor/app";
 
 const pizza = ref<InstanceType<typeof Pizza> | null>(null);
 const rotationStyle = ref("");
@@ -182,7 +227,7 @@ function getRandomDegrees() {
 }
 
 watch(() => navStore.currentMode,
-  (newValue, oldValue) => {
+  (newValue, _) => {
     showSelectedItem.value = false;
     switch (newValue) {
       case 0:
@@ -424,6 +469,17 @@ function resetToDefaults() {
   selectedItem.value = "";
   saveNewWheelValues();
 }
+
+App.addListener("backButton", ({canGoBack}) => {
+  /* OBS Entire event is Android only */
+  if (navStore.showSettings) {
+    navStore.showSettings = false;
+  } else if (canGoBack) {
+    window.history.back();
+  } else {
+    App.exitApp();
+  }
+});
 
 </script>
 
